@@ -115,12 +115,12 @@ QUrl WebEnginePartCookieJar::constructUrlForCookie(const QNetworkCookie& cookie)
 qlonglong WebEnginePartCookieJar::findWinID()
 {
     QWidget *mainWindow = qApp->activeWindow();
-    if (mainWindow && !mainWindow->windowFlags().testFlag(Qt::Dialog)) {
+    if (mainWindow && !(mainWindow->windowFlags() & Qt::Dialog)) {
         return mainWindow->winId();
     } else {
         QWidgetList windows = qApp->topLevelWidgets();
         foreach(QWidget *w, windows){
-            if (!w->windowFlags().testFlag(Qt::Dialog)) {
+            if (w->isWindow() && !(w->windowFlags() & Qt::Dialog)) {
                 return w->winId();
             }
         }
@@ -144,7 +144,7 @@ void WebEnginePartCookieJar::addCookie(const QNetworkCookie& _cookie)
     //the cookie back to KCookieServer; instead, remove it from the list.
     if (m_cookiesLoadedFromKCookieServer.removeOne(_cookie)) {
         return;
-    }
+    } 
     
 #ifdef BUILD_TESTING
         m_testCookies.clear();
@@ -285,27 +285,24 @@ void WebEnginePartCookieJar::cookieRemovalFailed(QDBusPendingCallWatcher *watche
 
 void WebEnginePartCookieJar::loadKIOCookies()
 {
-    const CookieUrlList cookies = findKIOCookies();
-    for (const CookieWithUrl& cookieWithUrl : cookies){
-        QNetworkCookie cookie = cookieWithUrl.cookie;
+    CookieList cookies = findKIOCookies();
+    foreach(const QNetworkCookie& cookie, cookies){
         QDateTime currentTime = QDateTime::currentDateTime();
         //Don't attempt to add expired cookies
         if (cookie.expirationDate().isValid() && cookie.expirationDate() < currentTime) {
             continue;
         }
-        QNetworkCookie normalizedCookie(cookie);
-        normalizedCookie.normalize(cookieWithUrl.url);
         m_cookiesLoadedFromKCookieServer << cookie;
 #ifdef BUILD_TESTING
         m_testCookies << cookie;
 #endif
-        m_cookieStore->setCookie(cookie, cookieWithUrl.url);
+        m_cookieStore->setCookie(cookie);
     }
 }
 
-WebEnginePartCookieJar::CookieUrlList WebEnginePartCookieJar::findKIOCookies()
+WebEnginePartCookieJar::CookieList WebEnginePartCookieJar::findKIOCookies()
 {
-    CookieUrlList res;
+    CookieList res;
     if (!m_cookieServer.isValid()) {
         return res;
     }
@@ -330,28 +327,24 @@ WebEnginePartCookieJar::CookieUrlList WebEnginePartCookieJar::findKIOCookies()
     return res;
 }
 
-//This function used to return a normalized cookie. However, doing so doesn't work correctly because QWebEngineCookieStore::setCookie
-//in turns normalizes the cookie. One could think that calling normalize twice wouldn't be a problem, but that would be wrong. If the cookie
-//domain is originally empty, after a call to normalize it will contain the cookie origin host. The second call to normalize will see a cookie
-//whose domain is not empty and doesn't start with a dot and will add a dot to it.
-WebEnginePartCookieJar::CookieWithUrl WebEnginePartCookieJar::parseKIOCookie(const QStringList& data, int start)
+QNetworkCookie WebEnginePartCookieJar::parseKIOCookie(const QStringList& data, int start)
 {
     QNetworkCookie c;
     auto extractField = [data, start](CookieDetails field){return data.at(start + static_cast<int>(field));};
-    c.setDomain(extractField(CookieDetails::domain));
+    c.setDomain(extractField(CookieDetails::domain).toUtf8());
     c.setExpirationDate(QDateTime::fromSecsSinceEpoch(extractField(CookieDetails::expirationDate).toInt()));
     c.setName(extractField(CookieDetails::name).toUtf8());
-    QString path = extractField(CookieDetails::path);
-    c.setPath(path);
+    c.setPath(extractField(CookieDetails::path).toUtf8());
     c.setSecure(extractField(CookieDetails::secure).toInt()); //1 for true, 0 for false
     c.setValue(extractField(CookieDetails::value).toUtf8());
-
-    QString host = extractField(CookieDetails::host);
-    QUrl url;
-    url.setScheme(c.isSecure() ? "https" : "http");
-    url.setHost(host);
-    url.setPath(path);
-    return CookieWithUrl{c, url};
+    if (c.domain().isEmpty()) {
+        QString host = extractField(CookieDetails::host);
+        QUrl url;
+        url.setScheme(c.isSecure() ? "https" : "http");
+        url.setHost(host);
+        c.normalize(url);
+    }
+    return c;
 }
 
 QDebug operator<<(QDebug deb, const WebEnginePartCookieJar::CookieIdentifier& id)

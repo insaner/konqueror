@@ -390,8 +390,7 @@ void WebEnginePart::attemptInstallKIOSchemeHandler(const QUrl& url)
      if (KProtocolManager::defaultMimetype(url) == "text/html") { // man:, info:, etc.
         QWebEngineProfile *prof = QWebEngineProfile::defaultProfile();
         QByteArray scheme = url.scheme().toUtf8();
-        //Qt complains about installing a scheme handler overriding the internal "about" scheme
-        if (scheme != "about" && !prof->urlSchemeHandler(scheme)) {
+        if (!prof->urlSchemeHandler(scheme)) {
             prof->installUrlSchemeHandler(scheme, new WebEnginePartKIOHandler(prof));
         }
     }
