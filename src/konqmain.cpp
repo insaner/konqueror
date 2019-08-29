@@ -80,11 +80,7 @@ static KonqMainWindow* handleCommandLine(QCommandLineParser &parser, const QStri
         }
 
         KonqSessionManager::self()->restoreSessions(sessionPath);
-        if (!KonqMainWindow::mainWindowList()->isEmpty()) {
-            return KonqMainWindow::mainWindowList()->first();
-        } else {
-            return nullptr;
-        }
+        return nullptr;
     }
 
     // Ask the user to recover session if applicable

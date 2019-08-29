@@ -124,14 +124,8 @@ private:
     * @return the ID of the window determined as described above or 0 if no such a window can be found
     */
     static qlonglong findWinID();
-
-    struct CookieWithUrl {
-        QNetworkCookie cookie;
-        QUrl url;
-    };
-
-    using CookieUrlList = QVector<CookieWithUrl>;
-    using CookieList = QVector<QNetworkCookie>;
+    
+    using CookieList = QList<QNetworkCookie>;
 
     /**
     * @brief An identifier for a cookie
@@ -226,7 +220,7 @@ private:
     * @brief Finds all cookies stored in `KCookieJar`
     * @return a list of the cookies in `KCookieJar`
     */
-    CookieUrlList findKIOCookies();
+    CookieList findKIOCookies();
     
     /**
     * @brief Enum describing the possible fields to pas to `KCookieServer::findCookies` using DBus.
@@ -245,7 +239,7 @@ private:
     * @param start: the position in the list where the data for the cookie starts.
     * @return The cookie described by the data and its host
     */
-    static CookieWithUrl parseKIOCookie(const QStringList &data, int start);
+    static QNetworkCookie parseKIOCookie(const QStringList &data, int start);
     
 #if QTWEBENGINE_VERSION >= QT_VERSION_CHECK(5,11,0)
     /**
