@@ -1,6 +1,7 @@
 /* This file is part of the KDE project
    Copyright (C) 2000      Simon Hausmann <hausmann@kde.org>
    Copyright (C) 2000-2007 David Faure <faure@kde.org>
+   Copyright (C) 2019      Raphael Rosch <kde-dev@insaner.com>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -26,12 +27,14 @@
 #include <libkonq_export.h>
 #include <kfileitem.h>
 #include <kconfigbase.h>
+#include <QUrl>
 
 namespace KParts
 {
 class ReadOnlyPart;
 }
 
+class KonqView;
 
 class LIBKONQ_EXPORT KonqFileSelectionEvent : public KParts::Event
 {
@@ -87,6 +90,36 @@ private:
 
     KFileItem m_item;
     KParts::ReadOnlyPart *m_part;
+};
+
+class LIBKONQ_EXPORT KonqActiveViewChangedEvent : public KParts::Event
+{
+public:
+    KonqActiveViewChangedEvent(const QUrl &url, KonqView *view);
+    ~KonqActiveViewChangedEvent() override;
+
+    const QUrl &url() const
+    {
+        return m_url;
+    }
+    
+    KonqView *view() const
+    {
+        return m_view;
+    }
+
+    static bool test(const QEvent *event)
+    {
+        return KParts::Event::test(event, s_activeViewChangedEventName);
+    }
+
+private:
+    Q_DISABLE_COPY(KonqActiveViewChangedEvent)
+    static const char *const s_activeViewChangedEventName;
+
+    KParts::ReadOnlyPart *m_part;
+    KonqView *m_view;
+    QUrl m_url;
 };
 
 #endif

@@ -27,6 +27,10 @@
 
 #include <QAction>
 #include <QKeyEvent>
+#include <kdebug.h>
+
+
+// #include <QAbstractScrollArea>
 
 KonqPlacesCustomPlacesView::KonqPlacesCustomPlacesView(QWidget *parent)
     : KFilePlacesView(parent)
@@ -66,7 +70,12 @@ KonqSideBarPlacesModule::KonqSideBarPlacesModule(QWidget *parent,
     m_placesView->setModel(new KFilePlacesModel(m_placesView));
     m_placesView->setShowAll(true);
     m_placesView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
+    
+    m_placesView->setAutoResizeItemsEnabled(false);
+    // m_placesView->setResizeMode(QListView::Fixed);
+    // m_placesView->setIconSize(QSize(32,32));
+    m_placesView->setIconSize(QSize(16,16)); // this would best be done by detecting the size of icons for other widgets
+        
     connect(m_placesView, SIGNAL(urlChanged(QUrl,Qt::MouseButtons,Qt::KeyboardModifiers)),
             this, SLOT(slotPlaceUrlChanged(QUrl,Qt::MouseButtons,Qt::KeyboardModifiers)));
 }

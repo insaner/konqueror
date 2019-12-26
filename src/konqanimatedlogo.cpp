@@ -25,6 +25,7 @@
 
 #include <QEvent>
 #include <QToolBar>
+#include "konqdebug.h"
 
 KonqAnimatedLogo::KonqAnimatedLogo(QWidget *parent)
     : KAnimatedButton(parent)
@@ -37,6 +38,7 @@ KonqAnimatedLogo::KonqAnimatedLogo(QWidget *parent)
         connectToToolBar(bar);
     }
     setAnimatedLogoSize(iconSize());
+    // setAnimatedLogoSize(QSize(32,32));
 }
 
 void KonqAnimatedLogo::changeEvent(QEvent *event)

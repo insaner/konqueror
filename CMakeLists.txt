@@ -64,7 +64,7 @@ add_subdirectory( webenginepart )
 
 add_subdirectory( about )
 add_subdirectory( pics )
-#add_subdirectory( sidebar )
+add_subdirectory( sidebar )
 add_subdirectory( settings )
 add_subdirectory( plugins )
 

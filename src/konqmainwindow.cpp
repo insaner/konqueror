@@ -2088,6 +2088,9 @@ void KonqMainWindow::slotPartActivated(KParts::Part *part)
     updateToolBarActions();
 
     m_currentView->setActiveComponent();
+
+    // emit KonqActiveViewChangedEvent (m_currentView->locationBarURL());
+    m_currentView->setActiveViewChangedInfo(m_currentView->url());
 }
 
 void KonqMainWindow::insertChildView(KonqView *childView)
@@ -4986,7 +4989,8 @@ void KonqMainWindow::addClosedWindowToUndoList()
 void KonqMainWindow::updateWindowIcon()
 {
     const QString url = m_combo->currentText();
-    const QPixmap pix = KonqPixmapProvider::self()->pixmapFor(url, KIconLoader::SizeSmall);
+    // const QPixmap pix = KonqPixmapProvider::self()->pixmapFor(url, KIconLoader::SizeSmall);
+    const QPixmap pix = KonqPixmapProvider::self()->pixmapFor(url, KIconLoader::SizeLarge); // fixes WM icon in task switcher
     KParts::MainWindow::setWindowIcon(pix);
 
     QPixmap big = pix;
@@ -5466,7 +5470,8 @@ bool KonqMainWindow::event(QEvent *e)
     }
 
     if (KonqFileSelectionEvent::test(e) ||
-            KonqFileMouseOverEvent::test(e)) {
+            KonqFileMouseOverEvent::test(e) ||
+            KonqActiveViewChangedEvent::test(e)) {
         // Forward the event to all views
         MapViews::ConstIterator it = m_mapViews.constBegin();
         MapViews::ConstIterator end = m_mapViews.constEnd();
@@ -5475,6 +5480,7 @@ bool KonqMainWindow::event(QEvent *e)
         }
         return true;
     }
+    
     if (KParts::OpenUrlEvent::test(e)) {
         KParts::OpenUrlEvent *ev = static_cast<KParts::OpenUrlEvent *>(e);
 

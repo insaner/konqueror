@@ -6,4 +6,5 @@ install( FILES
    remote.desktop
    history.desktop
    places.desktop
+   settings.desktop
 DESTINATION ${KDE_INSTALL_DATADIR}/konqsidebartng/entries )
