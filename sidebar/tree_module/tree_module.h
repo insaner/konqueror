@@ -28,33 +28,30 @@
 
 #include <QUrl>
 #include <QDir>
+#include <KParts/PartActivateEvent>
 
 
 // Set to 0 to use QDirModel instead
-#define KDIRMODEL 1
+#define KDIRMODEL 0
 
 
 
 #if KDIRMODEL
+// The following flag will be removed in the final code. It is kept as convenience for anyone pulling from my own git,
+//   while we test before the required changes make it to KF5
+
+ // #define KDIRMODEL_HAS_ROOT_NODE (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)) // set to the appropriate check here
+#define KDIRMODEL_HAS_ROOT_NODE 1
+
 #include <KDirModel>
 #include <KDirLister>
 #include <KDirSortFilterProxyModel>
 #include <QDirIterator>
+
 #else
+
 #include <QDirModel>
-#endif
 
-
-
-
-#if KDIRMODEL
-class KDirModelPlus : public KDirModel
-{
-public:
-    KDirModelPlus(QObject *parent=nullptr);
-    ~KDirModelPlus(){};
-    bool hasChildren (const QModelIndex &parent=QModelIndex()) const override;
-};
 #endif
 
 
@@ -70,36 +67,36 @@ public:
 
     virtual QWidget *getWidget() override;
     void handleURL(const QUrl &hand_url) override;
-    QUrl getLastURL() const; 
 
 private slots:
     void slotSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
 #if KDIRMODEL
-    void slotKDirCompleted_setSelection_h(bool do_openURLreq=true);
     void slotKDirCompleted_setSelection();
-    void slotKDirCompleted_setSelection_noOpen();
+    void slotKDirCompleted_setRootIndex();
 #endif
     void customEvent(QEvent *ev) override;
 
 private:
-    void setSelection(const QString path);
-    void setSelection(QUrl target_url, bool do_openURLreq=true);
-    //void setSelection(const QUrl target_url);
-    void setSelection(const QModelIndex index);
-    QUrl getUrlFromIndex(const QModelIndex index);
+    void setSelection(const QString &path);
+    void setSelection(const QUrl &target_url, bool do_openURLreq=true);
+    void setSelectionIndex(const QModelIndex &index);
+    QUrl getUrlFromIndex(const QModelIndex &index);
+    QModelIndex getIndexFromUrl(const QUrl &url);
+    QUrl cleanupURL(const QString &url);
+    QUrl cleanupURL(const QUrl &url);
 
     QTreeView *treeView;
-    QUrl m_initURL;
     QUrl m_lastURL;
+    QUrl m_initURL;
     bool m_ignoreHandle = false;
 
 #if KDIRMODEL
-    KDirModelPlus *model;
+    KDirModel *model;
     KDirSortFilterProxyModel *sorted_model;
 #else
     QDirModel *model;
 #endif
-    QModelIndex resolveIndex(const QModelIndex index);
+    QModelIndex resolveIndex(const QModelIndex &index);
 };
 
 #endif

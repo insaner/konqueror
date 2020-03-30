@@ -620,12 +620,6 @@ void KonqView::slotMouseOverInfo(const KFileItem &item)
     QApplication::sendEvent(m_pMainWindow, &ev);
 }
 
-void KonqView::setActiveViewChangedInfo(const QUrl &url)
-{
-    KonqActiveViewChangedEvent ev(url, this);
-    QApplication::sendEvent(m_pMainWindow, &ev);
-}
-
 void KonqView::setLocationBarURL(const QUrl &locationBarURL)
 {
     setLocationBarURL(locationBarURL.url(QUrl::PreferLocalFile));

@@ -26,6 +26,7 @@
 #include <QUrl>
 
 #include <kparts/part.h>
+#include <KParts/PartActivateEvent>
 #include <KSharedConfig>
 
 #include "konqsidebarplugin.h"
@@ -71,7 +72,7 @@ public:
     QString iconName;
     bool configOpen;
     QUrl initURL;
-    QUrl lastURL;
+//    QUrl lastURL;
 private:
 
 };
@@ -139,8 +140,8 @@ public Q_SLOTS:
 
 private:
 
-    QUrl cleanupURL(const QString url);
-    QUrl cleanupURL(const QUrl url);
+    QUrl cleanupURL(const QString &url);
+    QUrl cleanupURL(const QUrl &url);
     bool addButton(const QString &desktopFileName, int pos = -1);
     bool createView(ButtonInfo &buttonInfo);
     KonqSidebarModule *loadModule(QWidget *par, const QString &desktopName,

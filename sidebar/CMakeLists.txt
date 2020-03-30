@@ -5,6 +5,7 @@ if (${QT_QT3SUPPORT_FOUND})
 add_subdirectory( trees )
 endif()
 
+add_subdirectory( bookmarks_module )
 add_subdirectory( tree_module )
 add_subdirectory( web_module )
 add_subdirectory( history_module )

@@ -180,6 +180,7 @@ Sidebar_Widget::Sidebar_Widget(QWidget *parent, KParts::ReadOnlyPart *par, const
             this, SLOT(saveConfig()));
     readConfig();
     m_openViews = m_config->readEntry("OpenViews", QStringList());
+    
     m_savedWidth = m_config->readEntry("SavedWidth", 200);
     m_somethingVisible = !m_openViews.isEmpty();
     doLayout();
@@ -468,16 +469,15 @@ bool Sidebar_Widget::openUrl(const QUrl &url)
     bool ret = false;
     if (m_buttons.isEmpty()) { // special case, since KonqMainWindow uses openURL to launch sidebar before buttons exist
         m_urlBeforeInstanceFlag = true;
-        m_storedCurViewUrl = cleanupURL(url);
-        m_origURL = m_storedCurViewUrl;
     }
+    m_storedCurViewUrl = cleanupURL(url);
+    m_origURL = m_storedCurViewUrl;
 
     for (int i = 0; i < m_buttons.count(); i++) {
         const ButtonInfo &button = m_buttons.at(i);
         if (button.dock) {
             if ((button.dock->isVisibleTo(this)) && (button.module)) {
                 ret = true;
-                m_buttons[i].lastURL = url;
                 button.module->openUrl(url);
             }
         }
@@ -485,12 +485,12 @@ bool Sidebar_Widget::openUrl(const QUrl &url)
     return ret;
 }
 
-QUrl Sidebar_Widget::cleanupURL(const QString dirtyURL)
+QUrl Sidebar_Widget::cleanupURL(const QString &dirtyURL)
 {
     return cleanupURL(QUrl(dirtyURL));
 }
 
-QUrl Sidebar_Widget::cleanupURL(const QUrl dirtyURL)
+QUrl Sidebar_Widget::cleanupURL(const QUrl &dirtyURL)
 {
     if (!dirtyURL.isValid()) {
         return dirtyURL;
@@ -532,14 +532,6 @@ bool Sidebar_Widget::addButton(const QString &desktopFileName, int pos)
         m_buttonBar->appendTab(SmallIcon(icon), lastbtn, name);
         ButtonInfo buttonInfo(config, desktopFileName, cleanupURL(url), lib, name, icon);
         buttonInfo.configOpen = configGroup.readEntry("Open", false);
-        // buttonInfo.initURL = cleanupURL(url); FIXME delete this line if the cleanupURL above works INSANO
-
-        // special case for when the event had been received before the buttons had been created 
-        // (only for root tree, as it would otherwise overwrite the current view when launching the sidebar):
-        if (m_urlBeforeInstanceFlag && buttonInfo.initURL == QUrl("file:/")) { 
-            buttonInfo.lastURL = m_origURL;
-        }
-
         m_buttons.insert(lastbtn, buttonInfo);
         KMultiTabBarTab *tab = m_buttonBar->tab(lastbtn);
         tab->installEventFilter(this);
@@ -581,7 +573,6 @@ bool Sidebar_Widget::eventFilter(QObject *obj, QEvent *ev)
                 delete buttonPopup;
             }
             return true;
-
         }
     }
     return false;
@@ -640,16 +631,7 @@ void Sidebar_Widget::showHidePage(int page)
     auto buttonInfoHandleURL = [&] () {
         buttonInfo.dock->show();
         m_area->show();
-        if (buttonInfo.configOpen) {
-            if (buttonInfo.lastURL.isEmpty()) {
-                openUrl(buttonInfo.initURL); // also runs the buttonInfo.module->openUrl()
-            } else {
-                openUrl(buttonInfo.lastURL); // also runs the buttonInfo.module->openUrl()
-            }
-            if (buttonInfo.lastURL != m_storedCurViewUrl) {
-                emit buttonInfo.module->openUrlRequest(buttonInfo.lastURL);
-            }
-        }
+        openUrl(m_storedCurViewUrl); // also runs the buttonInfo.module->openUrl()
         m_visibleViews << buttonInfo.file;
         m_latestViewed = page;
     };
@@ -671,15 +653,11 @@ void Sidebar_Widget::showHidePage(int page)
 
             m_buttonBar->setTab(page, true);
 
-            connect(buttonInfo.module,
-                    SIGNAL(setIcon(QString)),
-                    m_buttonBar->tab(page),
-                    SLOT(setIcon(QString)));
+            connect(buttonInfo.module, SIGNAL(setIcon(QString)),
+                    m_buttonBar->tab(page), SLOT(setIcon(QString)));
 
-            connect(buttonInfo.module,
-                    SIGNAL(setCaption(QString)),
-                    m_buttonBar->tab(page),
-                    SLOT(setText(QString)));
+            connect(buttonInfo.module, SIGNAL(setCaption(QString)),
+                    m_buttonBar->tab(page), SLOT(setText(QString)));
 
             m_area->addWidget(buttonInfo.dock);
             buttonInfoHandleURL();
@@ -757,6 +735,9 @@ void Sidebar_Widget::submitFormRequest(const char *action,
 
 void Sidebar_Widget::openUrlRequest(const QUrl &url, const KParts::OpenUrlArguments &args, const KParts::BrowserArguments &browserArgs)
 {
+    if (m_storedCurViewUrl == url) { // don't pollute the history stack
+        return;
+    }
     getExtension()->openUrlRequest(url, args, browserArgs);
     m_storedCurViewUrl = url;
 }
@@ -825,10 +806,15 @@ void Sidebar_Widget::customEvent(QEvent *ev)
         emit fileSelection(static_cast<KonqFileSelectionEvent *>(ev)->selection());
     } else if (KonqFileMouseOverEvent::test(ev)) {
         emit fileMouseOver(static_cast<KonqFileMouseOverEvent *>(ev)->item());
-    } else if (KonqActiveViewChangedEvent::test(ev)) {
+    } else if (KParts::PartActivateEvent::test(ev)) {
+        KParts::ReadOnlyPart* rpart = static_cast<KParts::ReadOnlyPart *>( static_cast<KParts::PartActivateEvent *>(ev)->part() );
+	
+        if (! rpart->url().isEmpty()) {
+             m_storedCurViewUrl  =  cleanupURL(rpart->url());
+        }
+	
         if (m_buttons.isEmpty()) { // special case when the event is received but the buttons have not been created yet
             m_urlBeforeInstanceFlag = true;
-            m_storedCurViewUrl  =  cleanupURL(static_cast<KonqActiveViewChangedEvent *>(ev)->url());
             m_origURL = m_storedCurViewUrl;
         }
 

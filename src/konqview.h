@@ -540,10 +540,6 @@ public Q_SLOTS:
     // but also to KonqRun's job
     void slotInfoMessage(KJob *, const QString &msg);
 
-    //void slotActiveViewChangedInfo(const QString &url);
-    void setActiveViewChangedInfo(const QUrl &url);
-
-
 private Q_SLOTS:
     // connected to the KROP's KIO::Job
     void slotStarted(KIO::Job *job);

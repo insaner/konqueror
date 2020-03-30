@@ -71,7 +71,7 @@ void KonqSidebarPart::customEvent(QEvent *ev)
 {
     if (KonqFileSelectionEvent::test(ev) ||
             KonqFileMouseOverEvent::test(ev) ||
-            KonqActiveViewChangedEvent::test(ev)) {
+            KParts::PartActivateEvent::test(ev)) {
         // Forward the event to the widget
         QApplication::sendEvent(widget(), ev);
     }

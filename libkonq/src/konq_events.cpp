@@ -1,7 +1,6 @@
 /* This file is part of the KDE project
    Copyright (C) 2000      Simon Hausmann <hausmann@kde.org>
    Copyright (C) 2000-2007 David Faure <faure@kde.org>
-   Copyright (C) 2019      Raphael Rosch <kde-dev@insaner.com>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -23,7 +22,6 @@
 
 const char *const KonqFileSelectionEvent::s_fileItemSelectionEventName = "Konqueror/FileSelection";
 const char *const KonqFileMouseOverEvent::s_fileItemMouseOverEventName = "Konqueror/FileMouseOver";
-const char *const KonqActiveViewChangedEvent::s_activeViewChangedEventName = "Konqueror/ActiveViewChanged";
 
 KonqFileSelectionEvent::KonqFileSelectionEvent(const KFileItemList &selection, KParts::ReadOnlyPart *part)
     : KParts::Event(s_fileItemSelectionEventName), m_selection(selection), m_part(part)
@@ -40,14 +38,5 @@ KonqFileMouseOverEvent::KonqFileMouseOverEvent(const KFileItem &item, KParts::Re
 }
 
 KonqFileMouseOverEvent::~KonqFileMouseOverEvent()
-{
-}
-
-KonqActiveViewChangedEvent::KonqActiveViewChangedEvent(const QUrl &url, KonqView *view)
-    : KParts::Event(s_activeViewChangedEventName), m_url(url), m_view(view)
-{
-}
-
-KonqActiveViewChangedEvent::~KonqActiveViewChangedEvent()
 {
 }
