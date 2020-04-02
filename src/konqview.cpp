@@ -1194,33 +1194,17 @@ bool KonqView::eventFilter(QObject *obj, QEvent *e)
         }
     }
 
+#ifdef KActivities_FOUND
     if (e->type() == QEvent::FocusIn) {
-        setActiveComponent();
+        m_activityResourceInstance->notifyFocusedIn();
     }
 
-#ifdef KActivities_FOUND
     if (e->type() == QEvent::FocusOut) {
         m_activityResourceInstance->notifyFocusedOut();
     }
 #endif
 
     return false;
-}
-
-void KonqView::setActiveComponent()
-{
-#if 0 // Removed with the port to KF5. The concept no longer exists, the about dialog and bug report
-    // dialog just use the application information rather than the one of the current part.
-    if (m_bBuiltinView) {
-        KComponentData::setActiveComponent(KGlobal::mainComponent());
-    } else {
-        KComponentData::setActiveComponent(KComponentData(m_pPart->componentData()));
-    }
-#endif
-
-#ifdef KActivities_FOUND
-    m_activityResourceInstance->notifyFocusedIn();
-#endif
 }
 
 bool KonqView::prepareReload(KParts::OpenUrlArguments &args, KParts::BrowserArguments &browserArgs, bool softReload)
@@ -1283,13 +1267,13 @@ bool KonqView::supportsMimeType(const QString &mimeType) const
 
 void HistoryEntry::saveConfig(KConfigGroup &config, const QString &prefix, const KonqFrameBase::Options &options)
 {
-    if (options & KonqFrameBase::saveURLs) {
+    if (options & KonqFrameBase::SaveUrls) {
         config.writeEntry(QStringLiteral("Url").prepend(prefix), url.url());
         config.writeEntry(QStringLiteral("LocationBarURL").prepend(prefix), locationBarURL);
         config.writeEntry(QStringLiteral("Title").prepend(prefix), title);
         config.writeEntry(QStringLiteral("StrServiceType").prepend(prefix), strServiceType);
         config.writeEntry(QStringLiteral("StrServiceName").prepend(prefix), strServiceName);
-    } else if (options & KonqFrameBase::saveHistoryItems) {
+    } else if (options & KonqFrameBase::SaveHistoryItems) {
         config.writeEntry(QStringLiteral("Url").prepend(prefix), url.url());
         config.writeEntry(QStringLiteral("LocationBarURL").prepend(prefix), locationBarURL);
         config.writeEntry(QStringLiteral("Title").prepend(prefix), title);
@@ -1306,20 +1290,17 @@ void HistoryEntry::saveConfig(KConfigGroup &config, const QString &prefix, const
 
 void HistoryEntry::loadItem(const KConfigGroup &config, const QString &prefix, const KonqFrameBase::Options &options)
 {
-    if (options & KonqFrameBase::saveURLs) {
+    if (options & (KonqFrameBase::SaveUrls|KonqFrameBase::SaveHistoryItems)) { // either one
         url = QUrl(config.readEntry(QStringLiteral("Url").prepend(prefix), ""));
         locationBarURL = config.readEntry(QStringLiteral("LocationBarURL").prepend(prefix), "");
         title = config.readEntry(QStringLiteral("Title").prepend(prefix), "");
         strServiceType = config.readEntry(QStringLiteral("StrServiceType").prepend(prefix), "");
         strServiceName = config.readEntry(QStringLiteral("StrServiceName").prepend(prefix), "");
+    }
+    if (options & KonqFrameBase::SaveUrls) {
         reload = true;
-    } else if (options & KonqFrameBase::saveHistoryItems) {
-        url = QUrl(config.readEntry(QStringLiteral("Url").prepend(prefix), ""));
-        locationBarURL = config.readEntry(QStringLiteral("LocationBarURL").prepend(prefix), "");
-        title = config.readEntry(QStringLiteral("Title").prepend(prefix), "");
+    } else if (options & KonqFrameBase::SaveHistoryItems) {
         buffer = config.readEntry(QStringLiteral("Buffer").prepend(prefix), QByteArray());
-        strServiceType = config.readEntry(QStringLiteral("StrServiceType").prepend(prefix), "");
-        strServiceName = config.readEntry(QStringLiteral("StrServiceName").prepend(prefix), "");
         postData = config.readEntry(QStringLiteral("PostData").prepend(prefix), QByteArray());
         postContentType = config.readEntry(QStringLiteral("PostContentType").prepend(prefix), "");
         doPost = config.readEntry(QStringLiteral("DoPost").prepend(prefix), false);
@@ -1339,9 +1320,9 @@ void KonqView::saveConfig(KConfigGroup &config, const QString &prefix, const Kon
     config.writeEntry(QStringLiteral("ToggleView").prepend(prefix), isToggleView());
     config.writeEntry(QStringLiteral("LockedLocation").prepend(prefix), isLockedLocation());
 
-    if (options & KonqFrameBase::saveURLs) {
+    if (options & KonqFrameBase::SaveUrls) {
         config.writePathEntry(QStringLiteral("URL").prepend(prefix), url().url());
-    } else if (options & KonqFrameBase::saveHistoryItems) {
+    } else if (options & KonqFrameBase::SaveHistoryItems) {
         if (m_pPart && !m_bLockHistory) {
             updateHistoryEntry(true);
         }
@@ -1351,9 +1332,9 @@ void KonqView::saveConfig(KConfigGroup &config, const QString &prefix, const Kon
             // history for current history item
             KonqFrameBase::Options options;
             if (i == m_lstHistoryIndex) {
-                options = KonqFrameBase::saveHistoryItems;
+                options = KonqFrameBase::SaveHistoryItems;
             } else {
-                options = KonqFrameBase::saveURLs;
+                options = KonqFrameBase::SaveUrls;
             }
 
             (*it)->saveConfig(config, QLatin1String("HistoryItem")
@@ -1386,9 +1367,9 @@ void KonqView::loadHistoryConfig(const KConfigGroup &config, const QString &pref
         // Only current history item saves completely its HistoryEntry
         KonqFrameBase::Options options;
         if (i == currentIndex) {
-            options = KonqFrameBase::saveHistoryItems;
+            options = KonqFrameBase::SaveHistoryItems;
         } else {
-            options = KonqFrameBase::saveURLs;
+            options = KonqFrameBase::SaveUrls;
         }
 
         historyEntry->loadItem(config, QLatin1String("HistoryItem") + QString::number(i).prepend(prefix), options);
