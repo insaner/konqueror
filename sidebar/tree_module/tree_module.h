@@ -30,29 +30,15 @@
 #include <QDir>
 #include <KParts/PartActivateEvent>
 
-
-// Set to 0 to use QDirModel instead
-#define KDIRMODEL 0
-
-
-
-#if KDIRMODEL
-// The following flag will be removed in the final code. It is kept as convenience for anyone pulling from my own git,
-//   while we test before the required changes make it to KF5
-
- // #define KDIRMODEL_HAS_ROOT_NODE (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)) // set to the appropriate check here
-#define KDIRMODEL_HAS_ROOT_NODE 1
-
 #include <KDirModel>
 #include <KDirLister>
 #include <KDirSortFilterProxyModel>
 #include <QDirIterator>
 
-#else
+#include <kio_version.h>
 
-#include <QDirModel>
-
-#endif
+#define KDIRMODEL_HAS_ROOT_NODE  KIO_VERSION >= QT_VERSION_CHECK(5, 66, 0) // set to the appropriate check here
+#define KDIRMODEL_HAS_ROOT_NODE 1
 
 
 
@@ -70,14 +56,11 @@ public:
 
 private slots:
     void slotSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
-#if KDIRMODEL
-    void slotKDirCompleted_setSelection();
     void slotKDirCompleted_setRootIndex();
-#endif
+    void slotKDirCompleted_setSelection(const QModelIndex &index);
     void customEvent(QEvent *ev) override;
 
 private:
-    void setSelection(const QString &path);
     void setSelection(const QUrl &target_url, bool do_openURLreq=true);
     void setSelectionIndex(const QModelIndex &index);
     QUrl getUrlFromIndex(const QModelIndex &index);
@@ -90,12 +73,8 @@ private:
     QUrl m_initURL;
     bool m_ignoreHandle = false;
 
-#if KDIRMODEL
     KDirModel *model;
     KDirSortFilterProxyModel *sorted_model;
-#else
-    QDirModel *model;
-#endif
     QModelIndex resolveIndex(const QModelIndex &index);
 };
 

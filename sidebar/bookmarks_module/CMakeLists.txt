@@ -4,7 +4,7 @@ set(konqsidebar_bookmarks_SRCS
   bookmarks_module.cpp
 )
 
-add_library(konqsidebar_bookmarks MODULE ${konqsidebar_bookmark_SRCS})
+add_library(konqsidebar_bookmarks MODULE ${konqsidebar_bookmarks_SRCS})
 
 target_link_libraries(konqsidebar_bookmarks KF5::Parts KF5::Konq konqsidebarplugin )
 

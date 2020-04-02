@@ -2,14 +2,11 @@
 Type=Link
 URL=bookmarks:
 Icon=bookmark
-#Icon=user-bookmarks
 Open=true
 #X-KDE-TreeModule=Bookmarks
 X-KDE-TreeModule=Virtual
-#X-KDE-TreeModule=Directory
 X-KDE-RelURL=bookmarks
-X-KDE-KonqSidebarModule=konqsidebar_bookmark
-#X-KDE-KonqSidebarModule=konqsidebar_tree
+X-KDE-KonqSidebarModule=konqsidebar_bookmarks
 #X-KDE-SearchableTreeModule=true
 X-KDE-Weight=1
 Name=Bookmarks

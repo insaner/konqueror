@@ -21,19 +21,14 @@
 /*
 
 TODO:
--remove "relative URLs" , resolve '~' into a proper URL right away when reading the desktop file.
+-places panel does not respond to view location changes 
 -detect icon size for places panel
 
 BUGS:
 -(konq bug) sftp cannot save file being edited, because: "A file named sftp://hostname/path/to/file already exists."
+	maybe: https://phabricator.kde.org/D23384 , or https://phabricator.kde.org/D15318
 -(konq bug) loading session from cmdline causes crash, but not when konq is loaded fresh
 
-DONE:
--clicking on link while sidepanel is collapsed leads to wrong selected dir in panel
--history stack being polluted when switching views
--toggling the sidepane does not pick up the view url (don't know how yet, or even if possible)
--launching url from locationBar does not work because "completed" signal gets emitted but tree has not expanded
--when restoring session, any open sidepanels overwrite last location with last instance of sidepanel button (ie, remote:) and clicking back on history gives: "Location is empty"
 */
 
 
@@ -49,10 +44,6 @@ DONE:
 #include <QDir>
 
 #include <QHeaderView>
-#if KDIRMODEL
-#else
-#include <QStandardItemModel>
-#endif
 
 
 KonqSideBarTreeModule::KonqSideBarTreeModule(QWidget *parent,
@@ -64,9 +55,7 @@ KonqSideBarTreeModule::KonqSideBarTreeModule(QWidget *parent,
     treeView->setHeaderHidden(true);
     treeView->header()->setStretchLastSection(false);
     treeView->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
-//    treeView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
-#if KDIRMODEL
     model = new KDirModel(this);
     sorted_model = new KDirSortFilterProxyModel(this);
     sorted_model->setSortFoldersFirst(true);
@@ -81,57 +70,24 @@ KonqSideBarTreeModule::KonqSideBarTreeModule(QWidget *parent,
     }
 #else
     model->dirLister()->openUrl(m_initURL, KDirLister::Keep);
-#endif // KDIRMODEL_HAS_ROOT_NODE
+#endif
 
     treeView->setModel(sorted_model);
-#else // KDIRMODEL
-    model = new QDirModel(this);
-
-    model->setResolveSymlinks(false);	// NOTE FIXME: clicking on /bin/mh creates endless resolution -- check if this is resolved already
-    model->setReadOnly(true); // Disable modifying file system
-    model->setSorting(QDir::DirsFirst |
-                      QDir::IgnoreCase |
-                      QDir::Name);
-    model->setFilter( QDir::Dirs |
-                      QDir::NoDotAndDotDot);
-    treeView->setModel(model);
-#endif // KDIRMODEL
 
     treeView->setColumnHidden(1, true);
     treeView->setColumnHidden(2, true);
     treeView->setColumnHidden(3, true);
-#if KDIRMODEL
     treeView->setColumnHidden(4, true);
     treeView->setColumnHidden(5, true);
     treeView->setColumnHidden(6, true);
 
     model->expandToUrl(m_initURL); // KDir is async, we'll just have to wait for slotKDirCompleted()
-     // connect(model->dirLister(), QOverload<>::of(&KDirLister::completed),
     connect(model, &KDirModel::expand,
             this, &KonqSideBarTreeModule::slotKDirCompleted_setRootIndex);
-#else
-    if (m_initURL.scheme() == "file") { // schemes other than "file" not supported by QDirModel
-        QModelIndex index = getIndexFromUrl(m_initURL).parent();
-        treeView->setRootIndex(index);
-        if (!index.isValid()) {
-            index = getIndexFromUrl(m_initURL);
-        }
-        treeView->expand(index);
-    }
-#endif
         
     QItemSelectionModel *selectionModel = treeView->selectionModel();
     connect(selectionModel, &QItemSelectionModel::selectionChanged,
             this, &KonqSideBarTreeModule::slotSelectionChanged);
-        
-#if KDIRMODEL
-#else
-    if (!m_initURL.scheme().isNull() && m_initURL.scheme() != "file") { // schemes other than "file" not supported by QDirModel
-        model = NULL;
-        treeView->setModel(new QStandardItemModel(this));
-        static_cast<QStandardItemModel *>(treeView->model())->appendRow(new QStandardItem("'" + m_initURL.scheme() + ":' scheme\n     requires compiling with KDirModel"));
-    }
-#endif
 }
 
 void KonqSideBarTreeModule::customEvent(QEvent *ev) // active view has changed
@@ -191,18 +147,8 @@ void KonqSideBarTreeModule::handleURL(const QUrl &url)
     setSelection(handleURL);
 }
 
-void KonqSideBarTreeModule::setSelection(const QString &path)
-{
-#if KDIRMODEL
-    setSelection(QUrl::fromLocalFile(path)); // QUrl
-#else
-    setSelectionIndex(model->index(path)); // QModelIndex
-#endif
-}
-
 void KonqSideBarTreeModule::setSelection(const QUrl &target_url, bool do_openURLreq) // do_openURLreq=true)
 {
-#if KDIRMODEL
     QModelIndex index = sorted_model->mapFromSource(model->indexForUrl(target_url));
 
     m_lastURL = target_url;
@@ -211,27 +157,23 @@ void KonqSideBarTreeModule::setSelection(const QUrl &target_url, bool do_openURL
     if (!index.isValid() && target_url.scheme() == m_initURL.scheme()) {
 #else
     if (!index.isValid() && target_url.scheme() == m_initURL.scheme() && target_url != QUrl::fromLocalFile("/")) {
-#endif // KDIRMODEL_HAS_ROOT_NODE
+#endif
         if (do_openURLreq) {
-            connect(model->dirLister(), QOverload<>::of(&KDirLister::completed),
-            //connect(model, &KDirModel::expand,
-                this, &KonqSideBarTreeModule::slotKDirCompleted_setSelection);
-            model->expandToUrl(target_url); // KDir is async, we'll just have to wait for slotKDirCompleted_setSelection()
-            return;
+            // treeView->setCursor(Qt::WaitCursor);
+            connect(model, &KDirModel::expand,
+                this,  &KonqSideBarTreeModule::slotKDirCompleted_setSelection   );
+            model->expandToUrl(target_url); // KDir is async, we'll just have to wait for slotKDirCompleted_setSelection()          
         }
     }
-#else
-    QModelIndex index;
-    if (model) { // model is empty if we are using the other schemas
-        index = model->index(target_url.toLocalFile());
-    }
-#endif // KDIRMODEL
 
     setSelectionIndex(index);
 }
 
 void KonqSideBarTreeModule::setSelectionIndex(const QModelIndex &index)
 {
+    if (index == treeView->selectionModel()->currentIndex()) {
+        return;
+    }
     treeView->expand(index);
     treeView->scrollTo(index);
     treeView->setCurrentIndex(index);
@@ -248,7 +190,6 @@ void KonqSideBarTreeModule::slotSelectionChanged(const QItemSelection &selected,
 }
 
 
-#if KDIRMODEL
 // needed because KDirModel is async
 void KonqSideBarTreeModule::slotKDirCompleted_setRootIndex()
 {
@@ -258,20 +199,20 @@ void KonqSideBarTreeModule::slotKDirCompleted_setRootIndex()
             this, &KonqSideBarTreeModule::slotKDirCompleted_setRootIndex);
         treeView->setRootIndex(index.parent());
         treeView->expand(index);
-        setSelection(m_lastURL);
     }
 }
 
-void KonqSideBarTreeModule::slotKDirCompleted_setSelection()
+void KonqSideBarTreeModule::slotKDirCompleted_setSelection(const QModelIndex &index)
 {
-    if (getIndexFromUrl(m_lastURL).isValid()) {
-    disconnect(model->dirLister(), QOverload<>::of(&KDirLister::completed),
-    // disconnect(model, &KDirModel::expand,
-        this, &KonqSideBarTreeModule::slotKDirCompleted_setSelection);
+    QUrl urlFromIndex = getUrlFromIndex(index); // these are only going to be valid
+    if (urlFromIndex == m_lastURL) {
+        disconnect(model, &KDirModel::expand,
+            this, &KonqSideBarTreeModule::slotKDirCompleted_setSelection);
+        setSelection(m_lastURL, false);
+        // treeView->setCursor(Qt::ArrowCursor);
     }
-
-    setSelection(m_lastURL, false);
 }
+
 
 // resolves index to the correct model (due to use of KDirSortFilterProxyModel)
 QModelIndex KonqSideBarTreeModule::resolveIndex(const QModelIndex &index)
@@ -282,24 +223,16 @@ QModelIndex KonqSideBarTreeModule::resolveIndex(const QModelIndex &index)
         return index;
     }
 }
-#endif
-
 
 QUrl KonqSideBarTreeModule::getUrlFromIndex(const QModelIndex &index)
 {
     QUrl resolvedUrl;
 
     if (index.isValid()) {
-#if KDIRMODEL
         KFileItem itemForIndex = model->itemForIndex(resolveIndex(index));
         if (!itemForIndex.isNull()) {
             resolvedUrl = itemForIndex.url();
         }
-#else
-        if (model) { // model is empty if we are using the other schemas
-            resolvedUrl = QUrl::fromLocalFile(model->filePath(index));
-        }
-#endif
     }
 
     return resolvedUrl;
@@ -307,14 +240,7 @@ QUrl KonqSideBarTreeModule::getUrlFromIndex(const QModelIndex &index)
 
 QModelIndex KonqSideBarTreeModule::getIndexFromUrl(const QUrl &url)
 {
-#if KDIRMODEL
     return sorted_model->mapFromSource(model->indexForUrl(url));
-#else
-    if (model) { // model is empty if we are using the other schemas
-        return model->index(url.path());
-    }
-    return QModelIndex();
-#endif
 }
 
 

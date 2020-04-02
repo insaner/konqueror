@@ -25,6 +25,7 @@
 
 #include <QTreeView>
 #include <QStandardItemModel>
+#include <KParts/PartActivateEvent>
 
 #include <QDebug>
 
@@ -39,10 +40,17 @@ public:
     virtual ~KonqSideBarBookmarksModule();
 
     virtual QWidget *getWidget() override;
+    void handleURL(const QUrl &hand_url) override;
+	
+private slots:
+    void slotSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
+    void customEvent(QEvent *ev) override;
 
 private:
     QTreeView *treeView;
     QStandardItemModel *model;
+    QUrl m_lastURL;
+    QUrl m_initURL;
 };
 
 #endif

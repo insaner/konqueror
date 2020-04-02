@@ -180,7 +180,6 @@ Sidebar_Widget::Sidebar_Widget(QWidget *parent, KParts::ReadOnlyPart *par, const
             this, SLOT(saveConfig()));
     readConfig();
     m_openViews = m_config->readEntry("OpenViews", QStringList());
-    
     m_savedWidth = m_config->readEntry("SavedWidth", 200);
     m_somethingVisible = !m_openViews.isEmpty();
     doLayout();
@@ -526,7 +525,7 @@ bool Sidebar_Widget::addButton(const QString &desktopFileName, int pos)
     const QString comment = configGroup.readEntry("Comment", QString());
     const QUrl url(configGroup.readPathEntry("URL", QString()));
     const QString lib = configGroup.readEntry("X-KDE-KonqSidebarModule");
-    const QString configOpenStr = configGroup.readEntry("Open", QString());
+    const QString configOpenStr = configGroup.readEntry("Open", QString()); // NOTE: is this redundant?
 
     if (pos == -1) { // TODO handle insertion
         m_buttonBar->appendTab(SmallIcon(icon), lastbtn, name);
@@ -695,7 +694,7 @@ void Sidebar_Widget::collapseExpandSidebar()
     if (!parentWidget()) {
         return;    // Can happen during destruction
     }
-
+    
     if (m_visibleViews.count() == 0) {
         m_somethingVisible = false;
         parentWidget()->setMaximumWidth(minimumSizeHint().width());
